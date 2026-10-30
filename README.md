@@ -123,6 +123,14 @@ repeated.
 - Deletion is permanent. Use `-n` first, or `-m` to move duplicates somewhere
   you can review them before deleting.
 
+## Development
+
+```bash
+cargo test                    # unit + integration tests (temp folders; never touch your real cache)
+cargo test --test cli         # only the integration tests, which run the real binary
+cargo clippy --all-targets    # lints
+```
+
 ## License
 
 MIT. See [LICENSE](LICENSE).

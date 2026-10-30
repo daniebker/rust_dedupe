@@ -79,7 +79,7 @@ impl Move {
             .map(|e| format!(".{}", e.to_string_lossy()))
             .unwrap_or_default();
         (1..)
-            .map(|_| target.clone())
+            .map(|i| target.with_file_name(format!("{stem}_{i}{ext}")))
             .find(|p| !p.exists())
             .unwrap()
     }
