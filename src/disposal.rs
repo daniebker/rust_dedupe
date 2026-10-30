@@ -29,7 +29,10 @@ pub struct Plan {
 
 impl Plan {
     fn new(description: String, operation: impl FnOnce() -> io::Result<()> + 'static) -> Self {
-        Plan { description, operation: Box::new(operation) }
+        Plan {
+            description,
+            operation: Box::new(operation),
+        }
     }
 }
 
@@ -37,12 +40,17 @@ pub struct Delete;
 
 impl Disposal for Delete {
     fn verbs(&self) -> Verbs {
-        Verbs { present: "delete", past: "deleted" }
+        Verbs {
+            present: "delete",
+            past: "deleted",
+        }
     }
 
     fn plan(&self, file: &Path) -> Plan {
         let file = file.to_owned();
-        Plan::new(format!("delete {}", file.display()), move || fs::remove_file(file))
+        Plan::new(format!("delete {}", file.display()), move || {
+            fs::remove_file(file)
+        })
     }
 }
 
@@ -54,7 +62,10 @@ pub struct Move {
 
 impl Disposal for Move {
     fn verbs(&self) -> Verbs {
-        Verbs { present: "move", past: "moved" }
+        Verbs {
+            present: "move",
+            past: "moved",
+        }
     }
 
     fn plan(&self, file: &Path) -> Plan {
@@ -73,7 +84,11 @@ impl Move {
         if !target.exists() {
             return target;
         }
-        let stem = target.file_stem().unwrap_or_default().to_string_lossy().into_owned();
+        let stem = target
+            .file_stem()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .into_owned();
         let ext = target
             .extension()
             .map(|e| format!(".{}", e.to_string_lossy()))
@@ -107,8 +122,17 @@ pub struct Summary {
 
 impl fmt::Display for Summary {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let Summary { groups, verb, files, bytes, failures } = self;
-        write!(f, "{groups} duplicate groups; {verb} {files} files ({bytes} bytes).")?;
+        let Summary {
+            groups,
+            verb,
+            files,
+            bytes,
+            failures,
+        } = self;
+        write!(
+            f,
+            "{groups} duplicate groups; {verb} {files} files ({bytes} bytes)."
+        )?;
         if *failures > 0 {
             write!(f, "\n{failures} files failed.")?;
         }
@@ -125,7 +149,13 @@ pub fn dispose(groups: &[DuplicateGroup], disposal: &dyn Disposal, dry_run: bool
     } else {
         ("", verbs.past.to_owned())
     };
-    let mut summary = Summary { groups: groups.len(), verb, files: 0, bytes: 0, failures: 0 };
+    let mut summary = Summary {
+        groups: groups.len(),
+        verb,
+        files: 0,
+        bytes: 0,
+        failures: 0,
+    };
 
     for group in groups {
         println!("keep {}", group.keep.display());
@@ -160,14 +190,20 @@ mod tests {
     }
 
     fn mover(tmp: &TempDir) -> Move {
-        Move { root: tmp.path().join("root"), dest: tmp.path().join("dest") }
+        Move {
+            root: tmp.path().join("root"),
+            dest: tmp.path().join("dest"),
+        }
     }
 
     #[test]
     fn move_target_mirrors_path_under_dest() {
         let tmp = TempDir::new().unwrap();
         let m = mover(&tmp);
-        assert_eq!(m.target(&m.root.join("a/b/photo.jpg")), m.dest.join("a/b/photo.jpg"));
+        assert_eq!(
+            m.target(&m.root.join("a/b/photo.jpg")),
+            m.dest.join("a/b/photo.jpg")
+        );
     }
 
     #[test]
@@ -175,9 +211,15 @@ mod tests {
         let tmp = TempDir::new().unwrap();
         let m = mover(&tmp);
         write(&m.dest.join("a/photo.jpg"), "x");
-        assert_eq!(m.target(&m.root.join("a/photo.jpg")), m.dest.join("a/photo_1.jpg"));
+        assert_eq!(
+            m.target(&m.root.join("a/photo.jpg")),
+            m.dest.join("a/photo_1.jpg")
+        );
         write(&m.dest.join("a/photo_1.jpg"), "x");
-        assert_eq!(m.target(&m.root.join("a/photo.jpg")), m.dest.join("a/photo_2.jpg"));
+        assert_eq!(
+            m.target(&m.root.join("a/photo.jpg")),
+            m.dest.join("a/photo_2.jpg")
+        );
     }
 
     #[test]
@@ -196,7 +238,11 @@ mod tests {
         write(&file, "data");
 
         let plan = m.plan(&file);
-        let expected = format!("move {} -> {}", file.display(), m.dest.join("a/f.txt").display());
+        let expected = format!(
+            "move {} -> {}",
+            file.display(),
+            m.dest.join("a/f.txt").display()
+        );
         assert_eq!(plan.description, expected);
         assert!(file.exists(), "planning must not touch the disk");
 
@@ -225,7 +271,11 @@ mod tests {
         for f in [&keep, &x1, &x2] {
             write(f, "same");
         }
-        DuplicateGroup { size: 4, keep, extras: vec![x1, x2] }
+        DuplicateGroup {
+            size: 4,
+            keep,
+            extras: vec![x1, x2],
+        }
     }
 
     #[test]
@@ -236,7 +286,10 @@ mod tests {
         let summary = dispose(std::slice::from_ref(&group), &Delete, true);
 
         assert!(group.keep.exists() && group.extras.iter().all(|f| f.exists()));
-        assert_eq!(summary.to_string(), "1 duplicate groups; would delete 2 files (8 bytes).");
+        assert_eq!(
+            summary.to_string(),
+            "1 duplicate groups; would delete 2 files (8 bytes)."
+        );
     }
 
     #[test]
@@ -248,7 +301,10 @@ mod tests {
 
         assert!(group.keep.exists());
         assert!(group.extras.iter().all(|f| !f.exists()));
-        assert_eq!(summary.to_string(), "1 duplicate groups; deleted 2 files (8 bytes).");
+        assert_eq!(
+            summary.to_string(),
+            "1 duplicate groups; deleted 2 files (8 bytes)."
+        );
     }
 
     #[test]

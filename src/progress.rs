@@ -6,12 +6,17 @@ use std::time::Duration;
 
 /// A spinner for work whose total isn't known yet.
 pub fn spinner(template: &str) -> ProgressBar {
-    ticking(ProgressBar::new_spinner(), ProgressStyle::with_template(template).unwrap())
+    ticking(
+        ProgressBar::new_spinner(),
+        ProgressStyle::with_template(template).unwrap(),
+    )
 }
 
 /// A bar counting up to `len`.
 pub fn bar(len: usize, template: &str) -> ProgressBar {
-    let style = ProgressStyle::with_template(template).unwrap().progress_chars("=> ");
+    let style = ProgressStyle::with_template(template)
+        .unwrap()
+        .progress_chars("=> ");
     ticking(ProgressBar::new(len as u64), style)
 }
 

@@ -28,7 +28,11 @@ struct Entry {
 
 impl Entry {
     fn of(h: &HashedFile) -> Option<Self> {
-        Some(Entry { size: h.file.size, mtime: h.file.mtime?, hash: h.hash })
+        Some(Entry {
+            size: h.file.size,
+            mtime: h.file.mtime?,
+            hash: h.hash,
+        })
     }
 }
 
@@ -52,7 +56,11 @@ impl HashCache {
     /// gives a cache that remembers nothing.
     fn open_at(file: Option<PathBuf>) -> Self {
         let Some(file) = file else {
-            return HashCache { file: None, entries: HashMap::new(), journal: None };
+            return HashCache {
+                file: None,
+                entries: HashMap::new(),
+                journal: None,
+            };
         };
         let entries = load(&file);
         let journal = write_all(&file, &entries)
@@ -60,7 +68,11 @@ impl HashCache {
             .map_err(|e| warn_unavailable(&file, &e))
             .ok()
             .map(Mutex::new);
-        HashCache { file: Some(file), entries, journal }
+        HashCache {
+            file: Some(file),
+            entries,
+            journal,
+        }
     }
 
     /// Splits `files` into those with a still-valid cached hash and the rest.
@@ -178,12 +190,23 @@ mod tests {
     use tempfile::TempDir;
 
     fn hashed(path: &str, size: u64, mtime: Option<u128>, hash_byte: u8) -> HashedFile {
-        let file = FileInfo { path: path.into(), size, mtime };
-        HashedFile { file, hash: [hash_byte; 32] }
+        let file = FileInfo {
+            path: path.into(),
+            size,
+            mtime,
+        };
+        HashedFile {
+            file,
+            hash: [hash_byte; 32],
+        }
     }
 
     fn info(path: &str, size: u64, mtime: u128) -> FileInfo {
-        FileInfo { path: path.into(), size, mtime: Some(mtime) }
+        FileInfo {
+            path: path.into(),
+            size,
+            mtime: Some(mtime),
+        }
     }
 
     fn cache_file(tmp: &TempDir) -> PathBuf {
@@ -218,7 +241,11 @@ mod tests {
 
         assert!(cached_paths(&cache, vec![info("/r/a", 6, 100)]).is_empty());
         assert!(cached_paths(&cache, vec![info("/r/a", 5, 101)]).is_empty());
-        let no_mtime = FileInfo { path: "/r/a".into(), size: 5, mtime: None };
+        let no_mtime = FileInfo {
+            path: "/r/a".into(),
+            size: 5,
+            mtime: None,
+        };
         assert!(cached_paths(&cache, vec![no_mtime]).is_empty());
     }
 
@@ -229,7 +256,10 @@ mod tests {
         cache.record(&hashed("/r/a", 5, Some(100), 9));
         drop(cache); // Simulates the run being interrupted before save().
 
-        assert_eq!(cached_paths(&open(&tmp), vec![info("/r/a", 5, 100)]), [PathBuf::from("/r/a")]);
+        assert_eq!(
+            cached_paths(&open(&tmp), vec![info("/r/a", 5, 100)]),
+            [PathBuf::from("/r/a")]
+        );
     }
 
     #[test]
@@ -249,11 +279,18 @@ mod tests {
         let tmp = TempDir::new().unwrap();
         open(&tmp).save(
             Path::new("/"),
-            &[hashed("/r/old", 1, Some(1), 1), hashed("/other/x", 1, Some(1), 1)],
+            &[
+                hashed("/r/old", 1, Some(1), 1),
+                hashed("/other/x", 1, Some(1), 1),
+            ],
         );
         open(&tmp).save(Path::new("/r"), &[hashed("/r/new", 1, Some(1), 1)]);
 
-        let files = vec![info("/r/old", 1, 1), info("/r/new", 1, 1), info("/other/x", 1, 1)];
+        let files = vec![
+            info("/r/old", 1, 1),
+            info("/r/new", 1, 1),
+            info("/other/x", 1, 1),
+        ];
         let mut kept = cached_paths(&open(&tmp), files);
         kept.sort();
         assert_eq!(kept, [PathBuf::from("/other/x"), PathBuf::from("/r/new")]);
@@ -280,7 +317,9 @@ mod tests {
         let tmp = TempDir::new().unwrap();
         open(&tmp).save(Path::new("/r"), &[hashed("/r/a", 5, Some(100), 9)]);
         let file = cache_file(&tmp);
-        let text = fs::read_to_string(&file).unwrap().replace(HEADER, "dedupe-cache v0");
+        let text = fs::read_to_string(&file)
+            .unwrap()
+            .replace(HEADER, "dedupe-cache v0");
         fs::write(&file, text).unwrap();
 
         assert!(cached_paths(&open(&tmp), vec![info("/r/a", 5, 100)]).is_empty());
@@ -296,7 +335,13 @@ mod tests {
         let cache = open(&tmp);
         assert_eq!(cached_paths(&cache, vec![info("/r/a\tb", 5, 100)]).len(), 1);
         assert!(cached_paths(&cache, vec![info("/r/a\nb", 5, 100)]).is_empty());
-        assert_eq!(fs::read_to_string(cache_file(&tmp)).unwrap().lines().count(), 2);
+        assert_eq!(
+            fs::read_to_string(cache_file(&tmp))
+                .unwrap()
+                .lines()
+                .count(),
+            2
+        );
     }
 
     #[test]
@@ -306,7 +351,10 @@ mod tests {
         cache.record(&hashed("/r/a", 5, None, 1));
         cache.save(Path::new("/r"), &[hashed("/r/b", 5, None, 1)]);
 
-        assert_eq!(fs::read_to_string(cache_file(&tmp)).unwrap(), format!("{HEADER}\n"));
+        assert_eq!(
+            fs::read_to_string(cache_file(&tmp)).unwrap(),
+            format!("{HEADER}\n")
+        );
     }
 
     #[test]

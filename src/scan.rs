@@ -25,8 +25,16 @@ pub struct ScanStats {
 
 impl fmt::Display for ScanStats {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let ScanStats { scanned, unique, empty, unreadable } = self;
-        write!(f, "Scanned {scanned} files: {unique} unique size, {empty} empty")?;
+        let ScanStats {
+            scanned,
+            unique,
+            empty,
+            unreadable,
+        } = self;
+        write!(
+            f,
+            "Scanned {scanned} files: {unique} unique size, {empty} empty"
+        )?;
         if *unreadable > 0 {
             write!(f, ", {unreadable} unreadable")?;
         }
@@ -71,7 +79,11 @@ pub fn scan(root: &Path, exclude: Option<&Path>) -> Scan {
         match entry.metadata() {
             Ok(m) if m.len() > 0 => {
                 let mtime = mtime(&m);
-                let file = FileInfo { path: entry.into_path(), size: m.len(), mtime };
+                let file = FileInfo {
+                    path: entry.into_path(),
+                    size: m.len(),
+                    mtime,
+                };
                 by_size.entry(file.size).or_default().push(file);
             }
             Ok(_) => stats.empty += 1,
@@ -84,7 +96,11 @@ pub fn scan(root: &Path, exclude: Option<&Path>) -> Scan {
     bar.finish_and_clear();
 
     stats.unique = by_size.values().filter(|files| files.len() == 1).count();
-    let candidates = by_size.into_values().filter(|files| files.len() > 1).flatten().collect();
+    let candidates = by_size
+        .into_values()
+        .filter(|files| files.len() > 1)
+        .flatten()
+        .collect();
     Scan { candidates, stats }
 }
 
@@ -108,7 +124,13 @@ mod tests {
         let mut names: Vec<String> = scan
             .candidates
             .iter()
-            .map(|f| f.path.strip_prefix(root).unwrap().to_string_lossy().into_owned())
+            .map(|f| {
+                f.path
+                    .strip_prefix(root)
+                    .unwrap()
+                    .to_string_lossy()
+                    .into_owned()
+            })
             .collect();
         names.sort();
         names
@@ -129,7 +151,10 @@ mod tests {
         assert_eq!(candidate_names(&scan, root), ["a.txt", "sub/b.txt"]);
         let s = &scan.stats;
         assert_eq!((s.scanned, s.unique, s.empty, s.unreadable), (5, 1, 2, 0));
-        assert!(scan.candidates.iter().all(|f| f.size == 4 && f.mtime.is_some()));
+        assert!(scan
+            .candidates
+            .iter()
+            .all(|f| f.size == 4 && f.mtime.is_some()));
     }
 
     #[test]
@@ -162,9 +187,20 @@ mod tests {
 
     #[test]
     fn stats_display_shows_unreadable_only_when_nonzero() {
-        let mut stats = ScanStats { scanned: 10, unique: 4, empty: 1, unreadable: 0 };
-        assert_eq!(stats.to_string(), "Scanned 10 files: 4 unique size, 1 empty");
+        let mut stats = ScanStats {
+            scanned: 10,
+            unique: 4,
+            empty: 1,
+            unreadable: 0,
+        };
+        assert_eq!(
+            stats.to_string(),
+            "Scanned 10 files: 4 unique size, 1 empty"
+        );
         stats.unreadable = 2;
-        assert_eq!(stats.to_string(), "Scanned 10 files: 4 unique size, 1 empty, 2 unreadable");
+        assert_eq!(
+            stats.to_string(),
+            "Scanned 10 files: 4 unique size, 1 empty, 2 unreadable"
+        );
     }
 }

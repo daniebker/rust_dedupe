@@ -20,7 +20,9 @@ struct Run {
 
 impl Fixture {
     fn new() -> Self {
-        let f = Fixture { tmp: TempDir::new().unwrap() };
+        let f = Fixture {
+            tmp: TempDir::new().unwrap(),
+        };
         fs::create_dir(f.root()).unwrap();
         f
     }
@@ -78,7 +80,12 @@ fn files_under(dir: &Path) -> Vec<String> {
             if path.is_dir() && !path.is_symlink() {
                 stack.push(path);
             } else {
-                files.push(path.strip_prefix(dir).unwrap().to_string_lossy().into_owned());
+                files.push(
+                    path.strip_prefix(dir)
+                        .unwrap()
+                        .to_string_lossy()
+                        .into_owned(),
+                );
             }
         }
     }
@@ -110,7 +117,10 @@ fn dry_run_reports_but_changes_nothing() {
         c = f.path("c/copy.jpg").display(),
     );
     assert_eq!(run.stdout, expected);
-    assert_eq!(f.files(), ["a/photo.jpg", "b/photo.jpg", "c/copy.jpg", "c/other.jpg"]);
+    assert_eq!(
+        f.files(),
+        ["a/photo.jpg", "b/photo.jpg", "c/copy.jpg", "c/other.jpg"]
+    );
 }
 
 #[test]
@@ -121,7 +131,9 @@ fn deletes_extras_and_keeps_first_path() {
     let run = f.run(&[]);
 
     assert!(run.success);
-    assert!(run.stdout.ends_with("1 duplicate groups; deleted 2 files (8 bytes).\n"));
+    assert!(run
+        .stdout
+        .ends_with("1 duplicate groups; deleted 2 files (8 bytes).\n"));
     assert_eq!(f.files(), ["a/photo.jpg", "c/other.jpg"]);
     assert_eq!(fs::read_to_string(f.path("a/photo.jpg")).unwrap(), "same");
 }
@@ -135,10 +147,15 @@ fn move_mirrors_folder_structure_into_dest() {
     let run = f.run(&["-m", dest.to_str().unwrap()]);
 
     assert!(run.success, "{}", run.stderr);
-    assert!(run.stdout.ends_with("1 duplicate groups; moved 2 files (8 bytes).\n"));
+    assert!(run
+        .stdout
+        .ends_with("1 duplicate groups; moved 2 files (8 bytes).\n"));
     assert_eq!(f.files(), ["a/photo.jpg", "c/other.jpg"]);
     assert_eq!(files_under(&dest), ["b/photo.jpg", "c/copy.jpg"]);
-    assert_eq!(fs::read_to_string(dest.join("b/photo.jpg")).unwrap(), "same");
+    assert_eq!(
+        fs::read_to_string(dest.join("b/photo.jpg")).unwrap(),
+        "same"
+    );
 }
 
 #[test]
@@ -153,7 +170,10 @@ fn move_renames_on_clash_in_dest() {
     assert!(f.run(&["-m", dest.to_str().unwrap()]).success);
 
     assert_eq!(files_under(&dest), ["b/x.txt", "b/x_1.txt"]);
-    assert_eq!(fs::read_to_string(dest.join("b/x.txt")).unwrap(), "already here");
+    assert_eq!(
+        fs::read_to_string(dest.join("b/x.txt")).unwrap(),
+        "already here"
+    );
     assert_eq!(fs::read_to_string(dest.join("b/x_1.txt")).unwrap(), "same");
 }
 
@@ -169,7 +189,15 @@ fn dest_inside_root_is_not_rescanned() {
     let second = f.run(&["-m", dest]);
 
     assert_eq!(second.stdout, "No duplicates found.\n");
-    assert_eq!(f.files(), ["a/photo.jpg", "c/other.jpg", "dupes/b/photo.jpg", "dupes/c/copy.jpg"]);
+    assert_eq!(
+        f.files(),
+        [
+            "a/photo.jpg",
+            "c/other.jpg",
+            "dupes/b/photo.jpg",
+            "dupes/c/copy.jpg"
+        ]
+    );
 }
 
 #[test]
@@ -181,7 +209,11 @@ fn real_run_after_dry_run_uses_cached_hashes() {
     let real = f.run(&[]);
 
     assert!(dry.stderr.contains("0 cached, 4 to hash"), "{}", dry.stderr);
-    assert!(real.stderr.contains("4 cached, 0 to hash"), "{}", real.stderr);
+    assert!(
+        real.stderr.contains("4 cached, 0 to hash"),
+        "{}",
+        real.stderr
+    );
     assert_eq!(f.files(), ["a/photo.jpg", "c/other.jpg"]);
 }
 
@@ -224,7 +256,8 @@ fn scan_summary_accounts_for_every_file() {
     let run = f.run(&["-n"]);
 
     assert!(
-        run.stderr.contains("Scanned 7 files: 1 unique size, 2 empty, 0 cached, 4 to hash"),
+        run.stderr
+            .contains("Scanned 7 files: 1 unique size, 2 empty, 0 cached, 4 to hash"),
         "{}",
         run.stderr
     );
@@ -242,7 +275,10 @@ fn empty_files_and_symlinks_are_left_alone() {
     let run = f.run(&[]);
 
     assert_eq!(run.stdout, "No duplicates found.\n");
-    assert_eq!(f.files(), ["a/.gitkeep", "b/.gitkeep", "link1", "link2", "real"]);
+    assert_eq!(
+        f.files(),
+        ["a/.gitkeep", "b/.gitkeep", "link1", "link2", "real"]
+    );
 }
 
 #[test]
@@ -260,7 +296,10 @@ fn unreadable_file_warns_and_run_continues() {
 
     assert!(run.success);
     // stderr is a pipe here, not a terminal: warnings must still appear.
-    let warning = format!("warning: could not hash {}: Permission denied", locked.display());
+    let warning = format!(
+        "warning: could not hash {}: Permission denied",
+        locked.display()
+    );
     assert!(run.stderr.contains(&warning), "{}", run.stderr);
     assert_eq!(f.files(), ["a/photo.jpg", "c/other.jpg", "locked.jpg"]);
 }
@@ -280,7 +319,12 @@ fn failed_delete_is_reported_and_others_proceed() {
 
     assert!(run.success);
     assert!(run.stderr.contains("Permission denied"), "{}", run.stderr);
-    assert!(run.stdout.ends_with("deleted 1 files (4 bytes).\n1 files failed.\n"), "{}", run.stdout);
+    assert!(
+        run.stdout
+            .ends_with("deleted 1 files (4 bytes).\n1 files failed.\n"),
+        "{}",
+        run.stdout
+    );
     assert_eq!(f.files(), ["a/photo.jpg", "b/photo.jpg", "c/other.jpg"]);
 }
 
@@ -335,9 +379,15 @@ fn killed_run_resumes_from_hashes_saved_so_far() {
     let cache = f.tmp.path().join("cache/dedupe/hashes.tsv");
     // Wait until at least one hash has been saved (header + 1 line).
     while fs::read_to_string(&cache).map_or(0, |c| c.lines().count()) < 2 {
-        assert!(child.try_wait().unwrap().is_none(), "run finished before it could be killed");
+        assert!(
+            child.try_wait().unwrap().is_none(),
+            "run finished before it could be killed"
+        );
     }
-    assert!(child.try_wait().unwrap().is_none(), "run finished before it could be killed");
+    assert!(
+        child.try_wait().unwrap().is_none(),
+        "run finished before it could be killed"
+    );
     child.kill().unwrap(); // SIGKILL: no chance to clean up or run the final save.
     child.wait().unwrap();
 
@@ -349,7 +399,9 @@ fn killed_run_resumes_from_hashes_saved_so_far() {
         .find_map(|part| part.strip_suffix(" cached")?.parse().ok())
         .unwrap();
     assert!((1..300).contains(&cached), "{}", resumed.stderr);
-    assert!(resumed.stderr.contains(&format!("{cached} cached, {} to hash", 300 - cached)));
+    assert!(resumed
+        .stderr
+        .contains(&format!("{cached} cached, {} to hash", 300 - cached)));
 }
 
 #[test]
@@ -361,5 +413,8 @@ fn cache_forgets_deleted_duplicates() {
     f.run(&["-n"]);
 
     let cache = f.cache_contents();
-    assert!(!cache.contains("b/photo.jpg") && !cache.contains("c/copy.jpg"), "{cache}");
+    assert!(
+        !cache.contains("b/photo.jpg") && !cache.contains("c/copy.jpg"),
+        "{cache}"
+    );
 }

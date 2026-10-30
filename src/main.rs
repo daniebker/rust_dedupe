@@ -41,9 +41,9 @@ struct Args {
 
 fn main() -> ExitCode {
     let args = Args::parse();
-    let threads = args.threads.unwrap_or_else(|| {
-        2 * std::thread::available_parallelism().map_or(4, |n| n.get())
-    });
+    let threads = args
+        .threads
+        .unwrap_or_else(|| 2 * std::thread::available_parallelism().map_or(4, |n| n.get()));
     rayon::ThreadPoolBuilder::new()
         .num_threads(threads.max(1))
         .build_global()
@@ -60,7 +60,11 @@ fn main() -> ExitCode {
 fn run(args: &Args) -> io::Result<()> {
     let root = resolve_dir(&args.path)?;
     // Absolute, so the scan can skip it if it lives inside root.
-    let dest = args.move_to.as_deref().map(std::path::absolute).transpose()?;
+    let dest = args
+        .move_to
+        .as_deref()
+        .map(std::path::absolute)
+        .transpose()?;
 
     let scan = scan::scan(&root, dest.as_deref());
 
@@ -70,7 +74,12 @@ fn run(args: &Args) -> io::Result<()> {
     } else {
         cache.split_cached(scan.candidates)
     };
-    eprintln!("{}, {} cached, {} to hash", scan.stats, hashed.len(), to_hash.len());
+    eprintln!(
+        "{}, {} cached, {} to hash",
+        scan.stats,
+        hashed.len(),
+        to_hash.len()
+    );
     hashed.extend(hash::hash_all(to_hash, |h| cache.record(h)));
     cache.save(&root, &hashed);
 

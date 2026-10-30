@@ -59,7 +59,11 @@ mod tests {
     use tempfile::TempDir;
 
     fn file_info(path: std::path::PathBuf, size: u64) -> FileInfo {
-        FileInfo { path, size, mtime: None }
+        FileInfo {
+            path,
+            size,
+            mtime: None,
+        }
     }
 
     #[test]

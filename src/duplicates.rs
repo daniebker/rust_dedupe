@@ -17,7 +17,10 @@ pub struct DuplicateGroup {
 pub fn find(files: Vec<HashedFile>) -> Vec<DuplicateGroup> {
     let mut by_content: HashMap<(u64, Hash), Vec<PathBuf>> = HashMap::new();
     for h in files {
-        by_content.entry((h.file.size, h.hash)).or_default().push(h.file.path);
+        by_content
+            .entry((h.file.size, h.hash))
+            .or_default()
+            .push(h.file.path);
     }
     let mut groups: Vec<DuplicateGroup> = by_content
         .into_iter()
@@ -25,7 +28,11 @@ pub fn find(files: Vec<HashedFile>) -> Vec<DuplicateGroup> {
         .map(|((size, _), mut paths)| {
             paths.sort();
             let keep = paths.remove(0);
-            DuplicateGroup { size, keep, extras: paths }
+            DuplicateGroup {
+                size,
+                keep,
+                extras: paths,
+            }
         })
         .collect();
     groups.sort_by(|a, b| a.keep.cmp(&b.keep));
@@ -38,8 +45,15 @@ mod tests {
     use crate::scan::FileInfo;
 
     fn hashed(path: &str, size: u64, hash_byte: u8) -> HashedFile {
-        let file = FileInfo { path: path.into(), size, mtime: None };
-        HashedFile { file, hash: [hash_byte; 32] }
+        let file = FileInfo {
+            path: path.into(),
+            size,
+            mtime: None,
+        };
+        HashedFile {
+            file,
+            hash: [hash_byte; 32],
+        }
     }
 
     #[test]
@@ -52,12 +66,19 @@ mod tests {
         assert_eq!(groups.len(), 1);
         assert_eq!(groups[0].size, 10);
         assert_eq!(groups[0].keep, PathBuf::from("/a/orig"));
-        assert_eq!(groups[0].extras, [PathBuf::from("/m/copy"), PathBuf::from("/z/copy")]);
+        assert_eq!(
+            groups[0].extras,
+            [PathBuf::from("/m/copy"), PathBuf::from("/z/copy")]
+        );
     }
 
     #[test]
     fn files_without_a_match_are_not_grouped() {
-        let groups = find(vec![hashed("/a", 10, 1), hashed("/b", 10, 2), hashed("/c", 10, 3)]);
+        let groups = find(vec![
+            hashed("/a", 10, 1),
+            hashed("/b", 10, 2),
+            hashed("/c", 10, 3),
+        ]);
         assert!(groups.is_empty());
     }
 
