@@ -1,0 +1,15 @@
+[package]
+name = "dedupe"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+indicatif = "0.17"
+blake3 = { version = "1.5", features = ["mmap", "rayon"] }
+rayon = "1"
+walkdir = "2"
+
+[dev-dependencies]
+tempfile = "3"
